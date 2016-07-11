@@ -1,0 +1,2 @@
+include versioneer.py
+include pysweeper/_version.py
