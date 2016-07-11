@@ -1,49 +1,19 @@
 #!/usr/bin/env python
 
-import re
-import os
-import sys
-import time
 import random
 
 from math import ceil, log10
 
 from collections import deque
-from itertools import chain, product
+from itertools import product
 
 
-class Slotted(object):
-    __slots__ = ()
+class Tile(object):
 
-    def __init__(self, *args):
-        for arg, slot in zip(args, self.__slots__):
-            setattr(self, slot, arg)
-
-    def __repr__(self):
-        return '{}({})'.format(
-            type(self).__name__,
-            ', '.join(
-                '{}={!r}'.format(slot, getattr(self, slot))
-                for slot in self.__slots__
-            )
-        )
-
-    def __hash__(self):
-        return hash(
-            (type(self),) +
-            tuple(getattr(self, slot) for slot in self.__slots__)
-        )
-
-    def __eq__(self, other):
-        return type(self) == type(other) and all(
-            getattr(self, slot) == getattr(other, slot)
-            for slot in self.__slots__
-        )
-
-
-class Tile(Slotted):
-
-    __slots__ = 'exposed', 'flagged', 'content'
+    def __init__(self, exposed, flagged, content):
+        self.exposed = exposed
+        self.flagged = flagged
+        self.content = content
 
     def __str__(self):
         if self.content is not None:
@@ -57,9 +27,6 @@ class Tile(Slotted):
 
 
 class Bomb(Tile):
-
-    __slots__ = 'exposed', 'flagged', 'content'
-
     def __str__(self):
         return '\u2600' if self.exposed else super(Bomb, self).__str__()
 
@@ -70,26 +37,22 @@ def random_points(n, m, k):
     return points
 
 
-class Grid(Slotted):
-
-    __slots__ = 'nrows', 'ncolumns', 'grid', 'bomb_count', 'num_flagged'
+class Grid(object):
 
     def __init__(self, nrows, ncolumns, bomb_count):
-        super(Grid, self).__init__(
-            nrows,
-            ncolumns,
-            {
-                (i, j): (
-                    Bomb(False, False, None)
-                    if k < bomb_count else Tile(False, False, None)
-                )
-                for k, (i, j) in enumerate(
-                    random_points(nrows, ncolumns, bomb_count)
-                )
-            },
-            bomb_count,
-            0
-        )
+        self.nrows = nrows
+        self.ncolumns = ncolumns
+        self.grid = {
+            (i, j): (
+                Bomb(False, False, None)
+                if k < bomb_count else Tile(False, False, None)
+            )
+            for k, (i, j) in enumerate(
+                random_points(nrows, ncolumns, bomb_count)
+            )
+        }
+        self.bomb_count = bomb_count
+        self.num_flagged = 0
 
     def __str__(self):
         nspaces = max(ceil(log10(self.nrows)), ceil(log10(self.ncolumns)))
@@ -118,10 +81,12 @@ class Grid(Slotted):
         return {
             (i + x, j + y): self.grid[i + x, j + y]
             for x, y in product(increments, repeat=2)
-            if (x or y)
-                and 0 <= i + x < self.nrows
-                and 0 <= j + y < self.ncolumns
-                and isinstance(self.grid[i + x, j + y], types)
+            if (
+                (x or y) and
+                0 <= i + x < self.nrows and
+                0 <= j + y < self.ncolumns and
+                isinstance(self.grid[i + x, j + y], types)
+            )
         }
 
     def expose(self, i, j):
@@ -146,11 +111,13 @@ class Grid(Slotted):
         exposed = 0
 
         while c:
-            (x, y), tile = node = c.popleft()
+            (x, y), tile = c.popleft()
             if (x, y) not in seen:
                 seen.add((x, y))
                 adjacent = self.adjacent(x, y)
-                n_adjacent_bombs = sum(isinstance(t, Bomb) for t in adjacent.values())
+                n_adjacent_bombs = sum(
+                    isinstance(t, Bomb) for t in adjacent.values()
+                )
                 tile_exposed = not isinstance(tile, Bomb)
                 self.grid[x, y].exposed = tile_exposed
                 exposed += tile_exposed
