@@ -39,14 +39,15 @@ def play(nrows, ncolumns, nmines):
             total_exposed += exposed
             found_bomb = exposed == -1
 
-    print(grid)
 
     if found_bomb:
+        print(grid)
         print('You lost!')
 
     if grid.num_flagged == grid.bomb_count or (
         total_exposed == len(grid.grid) - grid.bomb_count
     ):
+        print(grid)
         print('Epic win!')
 
     return grid
