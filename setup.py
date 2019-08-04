@@ -20,6 +20,6 @@ setup(
         .splitlines()
     ),
     python_requires=">=3.7",
-    license="BSD",
-    entry_points={"console_scripts": ["pysweeper = pysweeper.console:main"]},
+    license="MIT",
+    entry_points={"console_scripts": ["pysweep = pysweeper.console:main"]},
 )
