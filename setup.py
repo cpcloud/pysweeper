@@ -12,7 +12,7 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     author="Phillip Cloud",
     author_email="cpcloud@gmail.com",
-    description="Your favorite mine sweeping game, console style",
+    description="Your favorite mine sweeping game, console style.",
     install_requires=(
         pathlib.Path(__file__)
         .parent.joinpath("requirements.txt")
