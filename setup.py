@@ -1,18 +1,25 @@
-from __future__ import absolute_import, division, print_function
+"""PySweeper installation."""
+
+import pathlib
 
 from setuptools import setup
+
 import versioneer
 
 setup(
-    name='pysweeper',
+    name="pysweeper",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    author='Phillip Cloud',
-    author_email='cpcloud@gmail.com',
-    description='Your favorite mine sweeping game -- console style',
-    install_requires=[],
-    license='BSD',
-    entry_points={
-        'console_scripts': ['pysweeper = pysweeper.console:main']
-    }
+    author="Phillip Cloud",
+    author_email="cpcloud@gmail.com",
+    description="Your favorite mine sweeping game, console style",
+    install_requires=(
+        pathlib.Path(__file__)
+        .parent.joinpath("requirements.txt")
+        .read_text()
+        .splitlines()
+    ),
+    python_requires=">=3.7",
+    license="BSD",
+    entry_points={"console_scripts": ["pysweeper = pysweeper.console:main"]},
 )

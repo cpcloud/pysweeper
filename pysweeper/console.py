@@ -1,76 +1,76 @@
-#!/usr/bin/env python
+"""Game entry point."""
 
-"""
-Main game control
-"""
-
-from __future__ import absolute_import, division, print_function
-
-import sys
 import re
+
+import click
 
 from .pysweeper import Grid
 
 
-def clear():
-    sys.stderr.write("\x1b[2J\x1b[H")
-    sys.stderr.flush()
-
-
-def play(nrows, ncolumns, nmines):
-    grid = Grid(nrows, ncolumns, nmines)
-    found_bomb = False
+@click.command()
+@click.option(
+    "-r",
+    "--rows",
+    type=int,
+    default=9,
+    help="The number of rows in the grid.",
+    show_default=True,
+)
+@click.option(
+    "-c",
+    "--columns",
+    type=int,
+    default=9,
+    help="The number of columns in the grid.",
+    show_default=True,
+)
+@click.option(
+    "-m",
+    "--mines",
+    type=int,
+    default=10,
+    help="The number of mines in the grid.",
+    show_default=True,
+)
+def main(rows: int, columns: int, mines: int) -> None:
+    """Your favorite sweeping game, terminal style."""
+    tiles = rows * columns
+    if mines > tiles:
+        raise click.ClickException(
+            "Number of mines must be less than the total number of tiles "
+            f"({tiles:d})"
+        )
+    grid = Grid(rows, columns, mines)
+    found_mine = False
     total_exposed = 0
-    while not found_bomb and total_exposed != len(grid.grid) - grid.bomb_count:
-        clear()
-        print(grid)
+    while not found_mine and total_exposed != len(grid) - grid.mine_count:
+        click.clear()
+        click.echo(grid)
         action = input(
-            '[E]xpose or [F]lag (\u2691 {})? '.format(
-                grid.bomb_count - grid.num_flagged
+            "[E]xpose or [F]lag (\u2691 {})? ".format(
+                grid.mine_count - grid.num_flagged
             )
         ).upper()
-        if action != 'E' and action != 'F':
-            print('action must be either E or F')
+        if action != "E" and action != "F":
+            click.echo("action must be either E or F")
         else:
-            coord = input('Coordinate to act on (0-based): ').strip()
-            i, j = map(int, re.split(r'(?:\s*,\s*)|(?:\s+)', coord))
-            method = grid.expose if action == 'E' else grid.flag
+            coord = input("Coordinate to act on (0-based): ").strip()
+            i, j = map(int, re.split(r"(?:\s*,\s*)|(?:\s+)", coord))
+            method = grid.expose if action == "E" else grid.flag
             exposed = method(i, j)
             total_exposed += exposed
-            found_bomb = exposed == -1
+            found_mine = exposed == -1
 
+    if found_mine:
+        click.echo(grid)
+        click.echo("You lose!")
 
-    if found_bomb:
-        print(grid)
-        print('You lost!')
-
-    if grid.num_flagged == grid.bomb_count or (
-        total_exposed == len(grid.grid) - grid.bomb_count
+    if grid.num_flagged == grid.mine_count or (
+        total_exposed == len(grid) - grid.mine_count
     ):
-        print(grid)
-        print('Epic win!')
-
-    return grid
+        click.echo(grid)
+        click.echo("You win!")
 
 
-def main():
-    """Main entry point for the game
-    """
-    import argparse
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('-r', '--rows', default=9, type=int)
-    parser.add_argument('-c', '--columns', default=9, type=int)
-    parser.add_argument('-m', '--mines', default=10, type=int)
-
-    args = parser.parse_args()
-
-    assert args.mines <= args.rows * args.columns, \
-        'number of mines must be less than the total number of tiles'
-
-    grid = play(args.rows, args.columns, args.mines)
-    return grid
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
