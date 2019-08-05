@@ -44,27 +44,26 @@ def main(rows: int, columns: int, mines: int) -> None:
     grid = Grid(rows, columns, mines)
     found_mine = False
     total_exposed = 0
-    while not found_mine and total_exposed != len(grid) - grid.mine_count:
+    method_map = {"E": grid.expose, "F": grid.flag}
+    while total_exposed != len(grid) - grid.mine_count:
         click.clear()
         click.echo(grid)
         action = input(
             f"[E]xpose or [F]lag (\u2691 {grid.available_flags:d})? "
         ).upper()
-        if action != "E" and action != "F" and action != "Q":
-            click.echo("action must be either E or F")
-        elif action == "Q":
+        if action == "Q":
             return
-        else:
+        if action == "E" or action == "F":
             coord = input("Coordinate to act on (0-based): ").strip()
             i, j = map(int, re.split(r"(?:\s*,\s*)|(?:\s+)", coord))
-            method = grid.expose if action == "E" else grid.flag
-            exposed = method(i, j)
-            total_exposed += exposed
+            exposed = method_map[action](i, j)
             found_mine = exposed == -1
-
-    if found_mine:
-        click.echo(grid)
-        click.echo("You lose!")
+            if found_mine:
+                click.echo(grid)
+                click.echo("You lose!")
+                return
+            else:
+                total_exposed += exposed
 
     if grid.num_flagged == grid.mine_count or (
         total_exposed == len(grid) - grid.mine_count
