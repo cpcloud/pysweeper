@@ -12,3 +12,4 @@ __conda_version__.txt
 .cache/
 .vscode
 .mypy_cache
+.pytest_cache
