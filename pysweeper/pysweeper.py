@@ -62,6 +62,11 @@ class Grid:
         self.mine_count = mine_count
         self.num_flagged = 0
 
+    @property
+    def available_flags(self) -> int:
+        """Return the number of available_flags."""
+        return self.mine_count - self.num_flagged
+
     def __len__(self) -> int:
         return len(self.grid)
 
@@ -82,7 +87,7 @@ class Grid:
         rows.extend(
             "{}{}".format(
                 str(i).rjust(nspaces),
-                " ".join(padding + str(grid[i, j]) for j in range(ncolumns)),
+                " ".join(f"{padding}{grid[i, j]}" for j in range(ncolumns)),
             )
             for i in range(nrows)
         )
@@ -134,10 +139,9 @@ class Grid:
                 seen.add(coord)
                 adjacent = self.adjacent(x, y)
                 adjacent_mines = sum(
-                    isinstance(grid[x, y], Mine) for x, y in adjacent
+                    isinstance(grid[adj_coord], Mine) for adj_coord in adjacent
                 )
-                tile_exposed = not isinstance(tile, Mine)
-                grid[coord].exposed = tile_exposed
+                grid[coord].exposed = tile_exposed = not isinstance(tile, Mine)
                 exposed += tile_exposed
 
                 if adjacent_mines:

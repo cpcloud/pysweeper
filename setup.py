@@ -21,5 +21,5 @@ setup(
     ),
     python_requires=">=3.7",
     license="MIT",
-    entry_points={"console_scripts": ["pysweep = pysweeper.console:main"]},
+    entry_points={"console_scripts": ["pysweeper = pysweeper.__main__:main"]},
 )

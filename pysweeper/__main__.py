@@ -1,6 +1,7 @@
 """Game entry point."""
 
 import re
+import sys
 
 import click
 
@@ -47,12 +48,12 @@ def main(rows: int, columns: int, mines: int) -> None:
         click.clear()
         click.echo(grid)
         action = input(
-            "[E]xpose or [F]lag (\u2691 {})? ".format(
-                grid.mine_count - grid.num_flagged
-            )
+            f"[E]xpose or [F]lag (\u2691 {grid.available_flags:d})? "
         ).upper()
-        if action != "E" and action != "F":
+        if action != "E" and action != "F" and action != "Q":
             click.echo("action must be either E or F")
+        elif action == "Q":
+            return
         else:
             coord = input("Coordinate to act on (0-based): ").strip()
             i, j = map(int, re.split(r"(?:\s*,\s*)|(?:\s+)", coord))
