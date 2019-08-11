@@ -68,6 +68,7 @@ class TileWidget(urwid.WidgetWrap):
         urwid.connect_signal(self, "click", self.on_click)
 
     def disable(self) -> None:
+        """Disable the tile."""
         urwid.disconnect_signal(self, "left_click", self.on_left_click)
         urwid.disconnect_signal(self, "right_click", self.on_right_click)
         urwid.disconnect_signal(self, "click", self.on_click)
@@ -95,7 +96,7 @@ class TileWidget(urwid.WidgetWrap):
         return not self.exposed
 
     def keypress(self, size: Tuple[int, ...], key: str) -> str:
-        """Do nothing."""
+        """Do nothing on keypress."""
         return key
 
     def mouse_event(
@@ -192,12 +193,12 @@ class PySweeperUI:
         self.info_header.set_text(f"Flags: {self.board.available_flags:d}")
 
     def on_click(self, widget: TileWidget) -> None:
-        """Redraw a widget on click."""
+        """Take an action when a widget is clicked."""
         widget.redraw()
         if widget.tile.mine and widget.exposed:
             self.disable()
             self.info_header.set_text("You lose!")
-        elif self.board.win:  # all mines are flagged
+        elif self.board.win:
             self.disable()
             self.info_header.set_text("You win!")
 

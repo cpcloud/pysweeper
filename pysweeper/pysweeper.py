@@ -74,12 +74,26 @@ class Board:
         return "\n".join(rows)
 
     @property
-    def win(self) -> bool:
-        """Return whether the game is won."""
-        return (
-            sum(tile.flagged and tile.mine for tile in self.grid.values())
-            == self.nmines
+    def total_exposed(self) -> int:
+        """Return the total number of tiles exposed."""
+        return sum(tile.exposed for tile in self.grid.values())
+
+    @property
+    def win(self) -> bool:  # noqa: D213
+        """Return whether the game is won.
+
+        The game is won when all mines are correctly flagged and all tiles
+        are exposed.
+
+        """
+        correctly_flagged_mines = sum(
+            tile.flagged and tile.mine for tile in self.grid.values()
         )
+        exposed_or_correctly_flagged = (
+            self.total_exposed + correctly_flagged_mines
+        )
+        assert exposed_or_correctly_flagged <= self.ntiles
+        return self.ntiles == exposed_or_correctly_flagged
 
     def adjacent(self, i: int, j: int) -> Set[Coordinate]:
         """Compute the tiles that are adjacent to the tile at `i`, `j`."""
@@ -111,6 +125,8 @@ class Board:
 
         """
         grid = self.grid
+
+        # return early if we exposed a mine
         if grid[i, j].mine:
             grid[i, j].exposed = True
             return {(i, j)}
