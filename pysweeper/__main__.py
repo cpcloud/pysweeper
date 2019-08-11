@@ -1,11 +1,8 @@
 """Game entry point."""
 
-import re
-import sys
-
 import click
 
-from .pysweeper import Grid
+from .ui import PySweeperUI
 
 
 @click.command()
@@ -35,41 +32,8 @@ from .pysweeper import Grid
 )
 def main(rows: int, columns: int, mines: int) -> None:
     """Your favorite sweeping game, terminal style."""
-    tiles = rows * columns
-    if mines > tiles:
-        raise click.ClickException(
-            "Number of mines must be less than the total number of tiles "
-            f"({tiles:d})"
-        )
-    grid = Grid(rows, columns, mines)
-    found_mine = False
-    total_exposed = 0
-    method_map = {"E": grid.expose, "F": grid.flag}
-    while total_exposed != len(grid) - grid.mine_count:
-        click.clear()
-        click.echo(grid)
-        action = input(
-            f"[E]xpose or [F]lag (\u2691 {grid.available_flags:d})? "
-        ).upper()
-        if action == "Q":
-            return
-        if action == "E" or action == "F":
-            coord = input("Coordinate to act on (0-based): ").strip()
-            i, j = map(int, re.split(r"(?:\s*,\s*)|(?:\s+)", coord))
-            exposed = method_map[action](i, j)
-            found_mine = exposed == -1
-            if found_mine:
-                click.echo(grid)
-                click.echo("You lose!")
-                return
-            else:
-                total_exposed += exposed
-
-    if grid.num_flagged == grid.mine_count or (
-        total_exposed == len(grid) - grid.mine_count
-    ):
-        click.echo(grid)
-        click.echo("You win!")
+    ui = PySweeperUI(rows, columns, mines)
+    ui.main()
 
 
 if __name__ == "__main__":
