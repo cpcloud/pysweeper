@@ -4,7 +4,6 @@ from typing import MutableSet, Set, Tuple
 
 import collections
 import dataclasses
-import math
 import random
 
 
@@ -27,6 +26,7 @@ class Board:
     def __init__(self, nrows: int, ncolumns: int, nmines: int) -> None:
         self.nrows = nrows
         self.ncolumns = ncolumns
+        self.ntiles = nrows * ncolumns
         self.grid = {
             (x, y): Tile() for x in range(nrows) for y in range(ncolumns)
         }
@@ -34,49 +34,23 @@ class Board:
             tile.mine = True
         self.nmines = nmines
         self.nflagged = 0
+        self.total_exposed = 0
+
+    def expose_all(self) -> None:
+        """Expose all tiles."""
+        for (x, y), tile in self.grid.items():
+            if not tile.exposed:
+                self.expose(x, y)
 
     @property
     def unexposed_tiles(self) -> int:
         """Return the number of unexposed tiles."""
-        return self.ntiles - self.nmines
+        return self.ntiles - self.total_exposed
 
     @property
     def available_flags(self) -> int:
         """Return the number of available_flags."""
         return self.nmines - self.nflagged
-
-    @property
-    def ntiles(self) -> int:
-        """Return the total number of tiles on the board."""
-        return self.nrows * self.ncolumns
-
-    def __str__(self) -> str:
-        nrows = self.nrows
-        ncolumns = self.ncolumns
-        nspaces = max(
-            math.ceil(math.log10(nrows)), math.ceil(math.log10(ncolumns))
-        )
-        padding = " " * nspaces
-        rows = [
-            "{}{}".format(
-                padding,
-                " ".join(str(i).rjust(nspaces + 1) for i in range(ncolumns)),
-            )
-        ]
-        grid = self.grid
-        rows.extend(
-            "{}{}".format(
-                str(i).rjust(nspaces),
-                " ".join(f"{padding}{grid[i, j]}" for j in range(ncolumns)),
-            )
-            for i in range(nrows)
-        )
-        return "\n".join(rows)
-
-    @property
-    def total_exposed(self) -> int:
-        """Return the total number of tiles exposed."""
-        return sum(tile.exposed for tile in self.grid.values())
 
     @property
     def win(self) -> bool:  # noqa: D213
@@ -157,6 +131,7 @@ class Board:
                     coordinates.extend(
                         coord for coord in adjacent if coord not in seen
                     )
+        self.total_exposed += len(exposed)
         return exposed
 
     def flag(self, i: int, j: int) -> bool:
