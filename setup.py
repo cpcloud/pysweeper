@@ -6,13 +6,19 @@ from setuptools import setup
 
 import versioneer
 
+description = "Your favorite mine sweeping game, console style."
+
 setup(
     name="pysweeper",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
+    url="https://github.com/cpcloud/pysweeper",
     author="Phillip Cloud",
     author_email="cpcloud@gmail.com",
-    description="Your favorite mine sweeping game, console style.",
+    maintainer="Phillip Cloud",
+    maintainer_email="cpcloud@gmail.com",
+    description=description,
+    long_description=description,
     install_requires=(
         pathlib.Path(__file__)
         .parent.joinpath("requirements.txt")
