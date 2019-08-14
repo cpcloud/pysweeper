@@ -118,7 +118,7 @@ class Board:
 
         * If we're a mine, fail
         * Else expose the current tile
-        * Count the number of adajacent tiles that are mines. 
+        * Count the number of adajacent tiles that are mines.
         * If the count is > 0, then replace that tile with a CountedTile
         2. For every adjacent tile, if any adjacent tiles are mines, halt
         3. Else expose the tile
