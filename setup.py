@@ -19,6 +19,7 @@ setup(
     maintainer_email="cpcloud@gmail.com",
     description="Your favorite mine sweeping game, console style.",
     long_description=directory.joinpath("README.md").read_text(),
+    long_description_content_type="text/markdown",
     install_requires=(
         directory.joinpath("requirements.txt").read_text().splitlines()
     ),
