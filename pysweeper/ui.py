@@ -220,7 +220,7 @@ class PySweeperUI:
             if not tile.exposed:
                 self.board.expose(*position)
             tile.redraw()
-            assert tile.exposed, f"Tile at {position} not exposed"
+            assert tile.exposed or tile.flagged
 
     def disable_all(self) -> None:
         """Disable all tiles."""
