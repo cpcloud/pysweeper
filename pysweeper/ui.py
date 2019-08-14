@@ -1,20 +1,13 @@
 """The urwid UI for PySweeper."""
 
-import itertools
+from typing import Any, Callable, Iterator, Sequence, Tuple, TypeVar
 
-from typing import Any, Callable, Iterator, Optional, Sequence, Tuple, TypeVar
-
+import toolz
 import urwid
 
 from .pysweeper import Board, Coordinate, Tile
 
 T = TypeVar("T", covariant=True)
-
-
-def chunked(iterable: Sequence[T], nchunks: int) -> Iterator[Sequence[T]]:
-    """Yield chunks of a sequence `iterable`."""
-    for i in range(0, len(iterable), nchunks):
-        yield iterable[i : i + nchunks]
 
 
 MINE_TILE = """\
@@ -44,7 +37,7 @@ TileWidgetCallback = Callable[["TileWidget"], None]
 class TileWidget(urwid.WidgetWrap):
     """A PySweeper tile widget."""
 
-    signals = ["click", "left_click", "right_click"]
+    signals = ["left_click", "right_click"]
 
     def __init__(
         self,
@@ -52,7 +45,6 @@ class TileWidget(urwid.WidgetWrap):
         tile: Tile,
         on_left_click: TileWidgetCallback,
         on_right_click: TileWidgetCallback,
-        on_click: TileWidgetCallback,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -61,17 +53,14 @@ class TileWidget(urwid.WidgetWrap):
         self.text = urwid.Text(str(self), align=urwid.CENTER)
         self.on_left_click = on_left_click
         self.on_right_click = on_right_click
-        self.on_click = on_click
         super().__init__(self.text, *args, **kwargs)
         urwid.connect_signal(self, "left_click", self.on_left_click)
         urwid.connect_signal(self, "right_click", self.on_right_click)
-        urwid.connect_signal(self, "click", self.on_click)
 
     def disable(self) -> None:
         """Disable the tile."""
         urwid.disconnect_signal(self, "left_click", self.on_left_click)
         urwid.disconnect_signal(self, "right_click", self.on_right_click)
-        urwid.disconnect_signal(self, "click", self.on_click)
 
     @property
     def exposed(self) -> bool:
@@ -118,7 +107,6 @@ class TileWidget(urwid.WidgetWrap):
                 else:
                     return False
                 urwid.emit_signal(self, signal_name, self)
-                urwid.emit_signal(self, "click", self)
                 return True
         return False
 
@@ -154,16 +142,17 @@ class PySweeperUI:
                         position=position,
                         on_left_click=self.on_left_click,
                         on_right_click=self.on_right_click,
-                        on_click=self.on_click,
                     )
                     for position, tile in chunk
                 ]
             )
-            for chunk in chunked(list(self.board.grid.items()), columns)
+            for chunk in toolz.partition_all(
+                columns, list(self.board.grid.items())
+            )
         ]
         self.widgets = {
             widget.position: widget
-            for widget in itertools.chain.from_iterable(
+            for widget in toolz.concat(
                 columns.widget_list for columns in self.grid
             )
         }
@@ -171,7 +160,6 @@ class PySweeperUI:
             f"Flags: {self.board.available_flags:d}", align=urwid.CENTER
         )
         self.main_layout = urwid.Pile([self.info_header] + self.grid)
-        self.lost = False
         self.loop = urwid.MainLoop(urwid.Filler(self.main_layout))
 
     def on_left_click(self, widget: TileWidget) -> None:
@@ -181,10 +169,20 @@ class PySweeperUI:
             for pos in self.board.expose(*widget.position):
                 self.widgets[pos].redraw()
 
+        widget.redraw()
+        if widget.tile.mine and widget.exposed:
+            self.expose_all()
+            self.disable()
+            self.info_header.set_text("You lose!")
+
     def on_right_click(self, widget: TileWidget) -> None:
         """Expose `widget`."""
-        assert not widget.exposed, "Widget is exposed when flagging"
-        flagged = self.board.flag(*widget.position)
+        position = widget.position
+        assert (
+            not widget.exposed
+        ), f"Tile at {position} is exposed when flagging"
+
+        flagged = self.board.flag(*position)
         if flagged:
             if self.board.available_flags:
                 widget.flagged = flagged
@@ -192,15 +190,18 @@ class PySweeperUI:
             widget.flagged = flagged
         self.info_header.set_text(f"Flags: {self.board.available_flags:d}")
 
-    def on_click(self, widget: TileWidget) -> None:
-        """Take an action when a widget is clicked."""
         widget.redraw()
-        if widget.tile.mine and widget.exposed:
-            self.disable()
-            self.info_header.set_text("You lose!")
-        elif self.board.win:
+        if self.board.win:
             self.disable()
             self.info_header.set_text("You win!")
+
+    def expose_all(self) -> None:
+        """Expose every tile."""
+        for position, tile in self.widgets.items():
+            if not tile.exposed:
+                self.board.expose(*position)
+            tile.redraw()
+            assert tile.exposed, f"Tile at {position} not exposed"
 
     def disable(self) -> None:
         """Disable tiles."""
