@@ -6,7 +6,7 @@ from setuptools import setup
 
 import versioneer
 
-description = "Your favorite mine sweeping game, console style."
+directory = pathlib.Path(__file__).parent
 
 setup(
     name="pysweeper",
@@ -17,13 +17,10 @@ setup(
     author_email="cpcloud@gmail.com",
     maintainer="Phillip Cloud",
     maintainer_email="cpcloud@gmail.com",
-    description=description,
-    long_description=description,
+    description="Your favorite mine sweeping game, console style.",
+    long_description=directory.joinpath("README.md").read_text(),
     install_requires=(
-        pathlib.Path(__file__)
-        .parent.joinpath("requirements.txt")
-        .read_text()
-        .splitlines()
+        directory.joinpath("requirements.txt").read_text().splitlines()
     ),
     python_requires=">=3.7",
     license="MIT",
