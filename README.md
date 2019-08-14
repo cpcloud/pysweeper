@@ -3,10 +3,30 @@
 Your favorite sweeping game, written in Python.
 
 
-TODO:
+## Installation
 
-* Investigate using networkx
-* Precompute the number of adjacent mines
-* Precompute adjacent nodes
-* Investigate whether there's a better pattern for tiles than the crap I
-  came up with
+### Clone the repo
+```shell
+$ git clone https://github.com/cpcloud/pysweeper
+```
+
+### Install Dependencies
+```shell
+$ pip install -r requirements.txt
+```
+
+### Install PySweeper
+
+```shell
+$ pip install .
+```
+
+## Usage
+```shell
+$ python -m pysweeper
+```
+
+
+## TODO
+
+* Use an actual graph
