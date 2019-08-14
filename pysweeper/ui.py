@@ -1,13 +1,13 @@
 """The urwid UI for PySweeper."""
 
-from typing import Any, Callable, Iterator, Sequence, Tuple, TypeVar
+import enum
+
+from typing import Any, Callable, Tuple
 
 import toolz
 import urwid
 
 from .pysweeper import Board, Coordinate, Tile
-
-T = TypeVar("T", covariant=True)
 
 
 MINE_TILE = """\
@@ -17,10 +17,15 @@ MINE_TILE = """\
 
 NUMBERED_TILE = """\
 ╭───╮
-│ {} │
+│ {:d} │
 ╰───╯"""
 
-UNCOVERED_TILE = """\
+EMPTY_TILE = """\
+╭───╮
+│   │
+╰───╯"""
+
+COVERED_TILE = """\
 ╭───╮
 │▓▓▓│
 ╰───╯"""
@@ -32,6 +37,16 @@ FLAGGED_TILE = """\
 
 
 TileWidgetCallback = Callable[["TileWidget"], None]
+
+
+class MouseButton(enum.Enum):
+    """Named mouse button types."""
+
+    LEFT = 1
+    MIDDLE = 2
+    RIGHT = 3
+    SCROLL_UP = 4
+    SCROLL_DOWN = 5
 
 
 class TileWidget(urwid.WidgetWrap):
@@ -98,31 +113,39 @@ class TileWidget(urwid.WidgetWrap):
         focus: bool,
     ) -> bool:
         """Click on a tile."""
-        if self.selectable():
-            if event == "mouse press":
-                if button == 1:
-                    signal_name = "left_click"
-                elif button == 3:
-                    signal_name = "right_click"
-                else:
-                    return False
-                urwid.emit_signal(self, signal_name, self)
-                return True
-        return False
+        if not self.selectable():
+            return False
+        if event != "mouse press":
+            return False
+        if button == MouseButton.LEFT.value:
+            signal_name = "left_click"
+        elif button == MouseButton.RIGHT.value:
+            signal_name = "right_click"
+        else:
+            return False
+        urwid.emit_signal(self, signal_name, self)
+        return True
 
     def __str__(self) -> str:
-        """Draw the tile."""
+        """Display the tile widget."""
         tile = self.tile
+
+        # not exposed, so either a flag or a covered tile
         if not tile.exposed:
             if tile.flagged:
                 return FLAGGED_TILE
-            return UNCOVERED_TILE
+            return COVERED_TILE
+
+        # a mine
         if tile.mine:
             return MINE_TILE
+
+        # numbered tile, indicating adjacent mine count or empty tile
+        # indicating zero adjacent mines
         adjacent_mines = tile.adjacent_mines
         if not adjacent_mines:
-            return NUMBERED_TILE.format(" ")
-        return NUMBERED_TILE.format(tile.adjacent_mines)
+            return EMPTY_TILE
+        return NUMBERED_TILE.format(adjacent_mines)
 
     def redraw(self) -> None:
         """Redraw the widget."""
@@ -136,19 +159,15 @@ class PySweeperUI:
         self.board = Board(rows, columns, mines)
         self.grid = [
             urwid.Columns(
-                [
-                    TileWidget(
-                        tile=tile,
-                        position=position,
-                        on_left_click=self.on_left_click,
-                        on_right_click=self.on_right_click,
-                    )
-                    for position, tile in chunk
-                ]
+                TileWidget(
+                    tile=tile,
+                    position=position,
+                    on_left_click=self.on_left_click,
+                    on_right_click=self.on_right_click,
+                )
+                for position, tile in chunk
             )
-            for chunk in toolz.partition_all(
-                columns, list(self.board.grid.items())
-            )
+            for chunk in toolz.partition_all(columns, self.board.grid.items())
         ]
         self.widgets = {
             widget.position: widget
@@ -172,11 +191,11 @@ class PySweeperUI:
         widget.redraw()
         if widget.tile.mine and widget.exposed:
             self.expose_all()
-            self.disable()
+            self.disable_all()
             self.info_header.set_text("You lose!")
 
     def on_right_click(self, widget: TileWidget) -> None:
-        """Expose `widget`."""
+        """Flag `widget`."""
         position = widget.position
         assert (
             not widget.exposed
@@ -192,7 +211,7 @@ class PySweeperUI:
 
         widget.redraw()
         if self.board.win:
-            self.disable()
+            self.disable_all()
             self.info_header.set_text("You win!")
 
     def expose_all(self) -> None:
@@ -203,8 +222,8 @@ class PySweeperUI:
             tile.redraw()
             assert tile.exposed, f"Tile at {position} not exposed"
 
-    def disable(self) -> None:
-        """Disable tiles."""
+    def disable_all(self) -> None:
+        """Disable all tiles."""
         for tile in self.widgets.values():
             tile.disable()
 
