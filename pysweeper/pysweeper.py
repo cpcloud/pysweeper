@@ -1,9 +1,10 @@
 """Sweep some mines, terminal style."""
 
-from typing import MutableSet, Set, Tuple
+from typing import FrozenSet, MutableSet, Set, Tuple
 
 import collections
 import dataclasses
+import itertools
 import math
 import random
 
@@ -15,10 +16,26 @@ Coordinate = Tuple[int, int]
 class Tile:
     """A minesweeper tile."""
 
+    adjacent_tiles: FrozenSet[Coordinate]
     mine: bool = False
     exposed: bool = False
     flagged: bool = False
-    adjacent_mines: int = 0
+    adjacent_mines: FrozenSet[Coordinate] = frozenset()
+
+
+def adjacent(
+    i: int, j: int, nrows: int, ncolumns: int
+) -> FrozenSet[Coordinate]:
+    """Compute the tiles that are adjacent to the tile at `i`, `j`."""
+    increments = 1, -1, 0
+    return frozenset(
+        (i + x, j + y)
+        for x in increments
+        for y in increments
+        if x or y
+        if 0 <= i + x < nrows
+        if 0 <= j + y < ncolumns
+    )
 
 
 class Board:
@@ -28,10 +45,17 @@ class Board:
         self.nrows = nrows
         self.ncolumns = ncolumns
         self.grid = {
-            (x, y): Tile() for x in range(nrows) for y in range(ncolumns)
+            (x, y): Tile(adjacent_tiles=adjacent(x, y, nrows, ncolumns))
+            for i, (x, y) in enumerate(
+                itertools.product(range(nrows), range(ncolumns))
+            )
         }
         for tile in random.choices(list(self.grid.values()), k=nmines):
             tile.mine = True
+        for tile in self.grid.values():
+            tile.adjacent_mines = frozenset(
+                coord for coord in tile.adjacent_tiles if self.grid[coord].mine
+            )
         self.nmines = nmines
         self.nflagged = 0
 
@@ -49,29 +73,6 @@ class Board:
     def ntiles(self) -> int:
         """Return the total number of tiles on the board."""
         return self.nrows * self.ncolumns
-
-    def __str__(self) -> str:
-        nrows = self.nrows
-        ncolumns = self.ncolumns
-        nspaces = max(
-            math.ceil(math.log10(nrows)), math.ceil(math.log10(ncolumns))
-        )
-        padding = " " * nspaces
-        rows = [
-            "{}{}".format(
-                padding,
-                " ".join(str(i).rjust(nspaces + 1) for i in range(ncolumns)),
-            )
-        ]
-        grid = self.grid
-        rows.extend(
-            "{}{}".format(
-                str(i).rjust(nspaces),
-                " ".join(f"{padding}{grid[i, j]}" for j in range(ncolumns)),
-            )
-            for i in range(nrows)
-        )
-        return "\n".join(rows)
 
     @property
     def total_exposed(self) -> int:
@@ -94,20 +95,6 @@ class Board:
         )
         assert exposed_or_correctly_flagged <= self.ntiles
         return self.ntiles == exposed_or_correctly_flagged
-
-    def adjacent(self, i: int, j: int) -> Set[Coordinate]:
-        """Compute the tiles that are adjacent to the tile at `i`, `j`."""
-        increments = 1, -1, 0
-        nrows = self.nrows
-        ncolumns = self.ncolumns
-        return {
-            (i + x, j + y)
-            for x in increments
-            for y in increments
-            if x or y
-            if 0 <= i + x < nrows
-            if 0 <= j + y < ncolumns
-        }
 
     def expose(self, i: int, j: int) -> Set[Coordinate]:  # noqa: D213
         """Tile exposure algorithm.
@@ -141,21 +128,17 @@ class Board:
             tile = grid[x, y]
             if coord not in seen:
                 seen.add(coord)
-                adjacent = self.adjacent(x, y)
-                adjacent_mines = sum(
-                    grid[adj_coord].mine for adj_coord in adjacent
-                )
-                grid[coord].exposed = tile_exposed = (
-                    not tile.mine and not tile.flagged
+                grid[coord].exposed = tile_exposed = not (
+                    tile.mine or tile.flagged
                 )
                 if tile_exposed:
                     exposed.add(coord)
 
-                if adjacent_mines:
-                    grid[coord].adjacent_mines = adjacent_mines
-                else:
+                if not tile.adjacent_mines:
                     coordinates.extend(
-                        coord for coord in adjacent if coord not in seen
+                        coord
+                        for coord in tile.adjacent_tiles
+                        if coord not in seen
                     )
         return exposed
 

@@ -145,7 +145,7 @@ class TileWidget(urwid.WidgetWrap):
         adjacent_mines = tile.adjacent_mines
         if not adjacent_mines:
             return EMPTY_TILE
-        return NUMBERED_TILE.format(adjacent_mines)
+        return NUMBERED_TILE.format(len(adjacent_mines))
 
     def redraw(self) -> None:
         """Redraw the widget."""
@@ -157,7 +157,7 @@ class PySweeperUI:
 
     def __init__(self, rows: int, columns: int, mines: int) -> None:
         self.board = Board(rows, columns, mines)
-        self.grid = [
+        self.columns = [
             urwid.Columns(
                 TileWidget(
                     tile=tile,
@@ -172,14 +172,14 @@ class PySweeperUI:
         self.widgets = {
             widget.position: widget
             for widget in toolz.concat(
-                columns.widget_list for columns in self.grid
+                chunk.widget_list for chunk in self.columns
             )
         }
-        self.info_header = urwid.Text(
+        self.header = urwid.Text(
             f"Flags: {self.board.available_flags:d}", align=urwid.CENTER
         )
-        self.main_layout = urwid.Pile([self.info_header] + self.grid)
-        self.loop = urwid.MainLoop(urwid.Filler(self.main_layout))
+        top = urwid.Filler(urwid.Pile([self.header] + self.columns))
+        self.loop = urwid.MainLoop(top)
 
     def on_left_click(self, widget: TileWidget) -> None:
         """Expose `widget`."""
@@ -192,7 +192,7 @@ class PySweeperUI:
         if widget.tile.mine and widget.exposed:
             self.expose_all()
             self.disable_all()
-            self.info_header.set_text("You lose!")
+            self.header.set_text("You lose!")
 
     def on_right_click(self, widget: TileWidget) -> None:
         """Flag `widget`."""
@@ -207,12 +207,12 @@ class PySweeperUI:
                 widget.flagged = flagged
         else:
             widget.flagged = flagged
-        self.info_header.set_text(f"Flags: {self.board.available_flags:d}")
+        self.header.set_text(f"Flags: {self.board.available_flags:d}")
 
         widget.redraw()
         if self.board.win:
             self.disable_all()
-            self.info_header.set_text("You win!")
+            self.header.set_text("You win!")
 
     def expose_all(self) -> None:
         """Expose every tile."""
