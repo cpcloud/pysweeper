@@ -1,11 +1,10 @@
 """Sweep some mines, terminal style."""
 
-from typing import FrozenSet, MutableSet, Set, Tuple
+from typing import FrozenSet, MutableSet, Tuple
 
 import collections
 import dataclasses
 import itertools
-import math
 import random
 
 
@@ -26,7 +25,12 @@ class Tile:
 def adjacent(
     i: int, j: int, nrows: int, ncolumns: int
 ) -> FrozenSet[Coordinate]:
-    """Compute the tiles that are adjacent to the tile at `i`, `j`."""
+    """Compute the tiles that are adjacent to the tile at `i`, `j`.
+
+    Coordinates are bound between `nrows` and `ncolumns` on the rows and
+    columns axes, respectively.
+
+    """
     increments = 1, -1, 0
     return frozenset(
         (i + x, j + y)
@@ -96,7 +100,7 @@ class Board:
         assert exposed_or_correctly_flagged <= self.ntiles
         return self.ntiles == exposed_or_correctly_flagged
 
-    def expose(self, i: int, j: int) -> Set[Coordinate]:  # noqa: D213
+    def expose(self, i: int, j: int) -> MutableSet[Coordinate]:  # noqa: D213
         """Tile exposure algorithm.
 
         Treat the grid as graph.
@@ -145,16 +149,18 @@ class Board:
     def flag(self, i: int, j: int) -> bool:
         """Flag the tile at coordinate `i`, `j`."""
         grid = self.grid
+        nflagged = self.nflagged
         tile = grid[i, j]
         was_flagged = tile.flagged
         flagged = not was_flagged
+        nmines = self.nmines
 
         if was_flagged:
-            if self.nflagged - 1 >= 0:
+            if nflagged - 1 >= 0:
                 grid[i, j].flagged = flagged
                 self.nflagged -= 1
         else:
-            if self.nflagged + 1 <= self.nmines and not tile.exposed:
+            if nflagged + 1 <= nmines and not tile.exposed:
                 grid[i, j].flagged = flagged
                 self.nflagged += 1
         return flagged
